@@ -724,22 +724,84 @@ aws ec2 describe-instances --filters "Name=tag:Name,Values=jade-mw" --query "Res
 
 Lab 24 Terraform Modules
 
+registry.terraform.io
+
 main.tf:
 module "iam_iam-user" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-user"
   version = "5.28.0"
-  # insert the 1 required variable here
-  name = "max"
+  name = "asiula"
 }
 
 ======================================================================================================================
 
 Lab 25 Functions and Conditional Expressions
 
+echo "floor(10.9)" | terraform console 
+echo 'title("user-generated password file")' | terraform console
 
+main.tf:
+resource "aws_iam_user" "cloud" {
+     name = split(":",var.cloud_users)[count.index]
+     count = length(split(":",var.cloud_users))
+
+}
+
+echo 'aws_iam_user.cloud[6].name' | terraform console
+echo "index(var.sf,\"oni\")" | terraform console
+
+main.tf:
+resource "aws_iam_user" "cloud" {
+     name = split(":",var.cloud_users)[count.index]
+     count = length(split(":",var.cloud_users))
+
+}
+resource "aws_s3_bucket" "sonic_media" {
+     bucket = var.bucket
+
+}
+resource "aws_s3_object" "upload_sonic_media" {
+     bucket = aws_s3_bucket.sonic_media.id
+     key =  substr(each.value, 7, 20)
+     source = each.value
+     for_each = var.media 
+
+}
+
+terraform init; echo 'var.small' | terraform console
+
+v2:
+
+main.tf:
+resource "aws_instance" "mario_servers" {
+     ami = var.ami
+     instance_type = var.name == "tiny" ? var.small : var.large
+     tags = {
+          Name = var.name
+
+     }
+
+}
 
 ======================================================================================================================
 
-Lab 26 
+Lab 26 Terraform Workspaces
+
+terraform workspace list
+terraform workspace new us-payroll
+terraform workspace new uk-payroll
+terraform workspace new india-payroll
+terraform workspace select us-payroll
+
+main.tf:
+module "payroll_app" {
+  source = "/root/terraform-projects/modules/payroll-app"
+  app_region = lookup(var.region, terraform.workspace)
+  ami        = lookup(var.ami, terraform.workspace)
+}
+
+terraform workspace select us-payroll; terraform apply
+terraform workspace select uk-payroll; terraform apply
+terraform workspace select india-payroll; terraform apply
 
 ======================================================================================================================
